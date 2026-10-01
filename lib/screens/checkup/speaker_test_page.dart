@@ -66,6 +66,15 @@ class _SpeakerTestPageState extends State<SpeakerTestPage>
       _error = null;
     });
     try {
+      await _player.setAudioContext(
+        AudioContext(
+          iOS: AudioContextIOS(
+            // playback ignores the hardware Ring/Silent switch and routes to
+            // the main loudspeaker, even if the earpiece test ran beforehand.
+            category: AVAudioSessionCategory.playback,
+          ),
+        ),
+      );
       await _player.setVolume(1);
       await _player.play(BytesSource(
           CheckupTone.steady(frequency: _frequency, seconds: _seconds)));

@@ -1,4 +1,5 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -24,6 +25,8 @@ class NetworkTestPage extends StatefulWidget {
 }
 
 class _NetworkTestPageState extends State<NetworkTestPage> {
+  static const _internetChannel = MethodChannel('french_mobiles/internet');
+
   bool _isPermanentlyDenied = false;
   String _statusText = 'Reading SIM state…';
   CheckupResult? _result;
@@ -35,29 +38,31 @@ class _NetworkTestPageState extends State<NetworkTestPage> {
   }
 
   Future<void> _run() async {
-    final phone = await Permission.phone.request();
-    if (!mounted) return;
-    if (phone.isPermanentlyDenied) {
-      setState(() => _isPermanentlyDenied = true);
-      _setResult(
-          const CheckupResult(
-            key: 'network',
-            title: 'Mobile network',
-            status: CheckupStatus.skipped,
-            detail:
-                'Phone state permission is permanently denied. Open Settings to grant.',
-          ),
-          hold: true);
-      return;
-    }
-    if (!phone.isGranted) {
-      _setResult(const CheckupResult(
-        key: 'network',
-        title: 'Mobile network',
-        status: CheckupStatus.skipped,
-        detail: 'Phone state permission was not granted.',
-      ));
-      return;
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
+      final phone = await Permission.phone.request();
+      if (!mounted) return;
+      if (phone.isPermanentlyDenied) {
+        setState(() => _isPermanentlyDenied = true);
+        _setResult(
+            const CheckupResult(
+              key: 'network',
+              title: 'Mobile network',
+              status: CheckupStatus.skipped,
+              detail:
+                  'Phone state permission is permanently denied. Open Settings to grant.',
+            ),
+            hold: true);
+        return;
+      }
+      if (!phone.isGranted) {
+        _setResult(const CheckupResult(
+          key: 'network',
+          title: 'Mobile network',
+          status: CheckupStatus.skipped,
+          detail: 'Phone state permission was not granted.',
+        ));
+        return;
+      }
     }
 
     String? carrier;
@@ -153,10 +158,22 @@ class _NetworkTestPageState extends State<NetworkTestPage> {
       final response = await http
           .get(Uri.parse('https://connectivitycheck.gstatic.com/generate_204'))
           .timeout(const Duration(seconds: 10));
-      return response.statusCode >= 200 && response.statusCode < 400;
+      if (response.statusCode >= 200 && response.statusCode < 400) {
+        return true;
+      }
     } catch (_) {
-      return false;
+      // Fall through to native channel probe when available.
     }
+    try {
+      final probe = await _internetChannel
+          .invokeMapMethod<String, dynamic>('probeCellular')
+          .timeout(const Duration(seconds: 5));
+      if (probe != null &&
+          (probe['status'] == 'ok' || probe['status'] == 'captive')) {
+        return true;
+      }
+    } catch (_) {}
+    return false;
   }
 
   /// Records the verdict and pops back to the orchestrator.

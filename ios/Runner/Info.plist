@@ -66,5 +66,61 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- iOS Hardware & Privacy Usage Descriptions for Auto Checkup & App Features -->
+	<key>NSCameraUsageDescription</key>
+	<string>French Mobiles uses the camera and rear flash to verify camera and flashlight hardware during device checkup and to take profile photos.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>French Mobiles uses the microphone during device checkup to verify audio capture hardware.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>French Mobiles uses Face ID / Touch ID during device checkup to verify that biometric authentication hardware is functioning properly.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>French Mobiles needs access to your photo library so you can select and upload a profile photo or device images.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>French Mobiles needs permission to save photos to your library.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>French Mobiles uses your location to test GPS hardware, verify Wi-Fi connectivity, and set your doorstep pickup address on the map.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>French Mobiles uses your location to test GPS hardware, verify Wi-Fi connectivity, and set your doorstep pickup address on the map.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>French Mobiles uses Bluetooth during device checkup to verify that the Bluetooth radio can scan for nearby devices.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>French Mobiles uses Bluetooth during device checkup to verify that the Bluetooth radio is working.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>French Mobiles uses the gyroscope and accelerometer during device checkup to verify motion sensors.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>French Mobiles checks local network interfaces during device checkup to verify Wi-Fi and cellular connectivity.</string>
+	<!-- External URL schemes used by url_launcher -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>mailto</string>
+		<string>sms</string>
+		<string>whatsapp</string>
+		<string>https</string>
+		<string>http</string>
+	</array>
+	<!-- Google Sign-In default configuration -->
+	<key>GIDClientID</key>
+	<string>1086357315686-gd3cjbuqqll9umc7peffkd04laiq6hmt.apps.googleusercontent.com</string>
+	<key>GIDServerClientID</key>
+	<string>1086357315686-gd3cjbuqqll9umc7peffkd04laiq6hmt.apps.googleusercontent.com</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.1086357315686-gd3cjbuqqll9umc7peffkd04laiq6hmt</string>
+				<string>com.example.frenchMobiles</string>
+			</array>
+		</dict>
+	</array>
+	<!-- Background modes for push notifications and audio tests -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

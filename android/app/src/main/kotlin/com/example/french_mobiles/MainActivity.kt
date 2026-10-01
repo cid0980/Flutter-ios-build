@@ -1,15 +1,19 @@
 package com.example.french_mobiles
 
+import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.hardware.fingerprint.FingerprintManager
 import android.media.AudioManager
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.os.Bundle
+import android.os.CancellationSignal
 import android.os.Handler
 import android.os.Looper
 import android.os.BatteryManager
@@ -23,6 +27,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterFragmentActivity() {
@@ -475,6 +480,40 @@ class MainActivity : FlutterFragmentActivity() {
                 else -> result.notImplemented()
             }
         }
+
+        // Biometric hardware diagnostic channels (Reverse-engineering-data-s)
+        fingerprintMethodChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "fingerprint_test/methods"
+        )
+        fingerprintMethodChannel.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "getStatus" -> result.success(getFingerprintStatus())
+                "startAuth" -> {
+                    startFingerprintAuth()
+                    result.success(getFingerprintStatus())
+                }
+                "cancelAuth" -> {
+                    cancelFingerprintAuth()
+                    result.success(getFingerprintStatus())
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        fingerprintEventChannel = EventChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "fingerprint_test/events"
+        )
+        fingerprintEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
+            override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                fingerprintEventSink = events
+            }
+
+            override fun onCancel(arguments: Any?) {
+                fingerprintEventSink = null
+            }
+        })
     }
 
     /// Watches the screen going off and coming back.
@@ -626,7 +665,162 @@ class MainActivity : FlutterFragmentActivity() {
         // sensor is covered, with no way back. Release it unconditionally.
         releaseProximityWakeLock()
         proximityChannel.setMethodCallHandler(null)
+        cancelFingerprintAuth()
+        fingerprintMethodChannel.setMethodCallHandler(null)
+        fingerprintEventChannel.setStreamHandler(null)
         super.cleanUpFlutterEngine(flutterEngine)
+    }
+
+    private lateinit var fingerprintMethodChannel: MethodChannel
+    private lateinit var fingerprintEventChannel: EventChannel
+    private var fingerprintEventSink: EventChannel.EventSink? = null
+    private var fingerprintCancellationSignal: CancellationSignal? = null
+
+    @Suppress("DEPRECATION")
+    private fun getFingerprintManagerOrNull(): FingerprintManager? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return null
+        return getSystemService(FingerprintManager::class.java)
+    }
+
+    private fun hasFingerprintPermission(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return false
+        val grantedUseFingerprint = checkSelfPermission(Manifest.permission.USE_FINGERPRINT) ==
+            PackageManager.PERMISSION_GRANTED
+        val grantedUseBiometric = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            checkSelfPermission(Manifest.permission.USE_BIOMETRIC) ==
+                PackageManager.PERMISSION_GRANTED
+        } else {
+            false
+        }
+        return grantedUseFingerprint || grantedUseBiometric
+    }
+
+    @Suppress("DEPRECATION")
+    private fun getFingerprintStatus(): Map<String, Any?> {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return mapOf(
+                "sdkInt" to Build.VERSION.SDK_INT,
+                "supported" to false,
+                "permissionGranted" to false,
+                "hasHardware" to false,
+                "hasEnrolled" to false,
+                "ready" to false,
+                "listening" to false,
+                "biometryType" to "Fingerprint"
+            )
+        }
+        val fp = getFingerprintManagerOrNull()
+        val perm = hasFingerprintPermission()
+        val hardware = try {
+            perm && (fp?.isHardwareDetected == true)
+        } catch (_: SecurityException) {
+            false
+        }
+        val enrolled = try {
+            perm && hardware && (fp?.hasEnrolledFingerprints() == true)
+        } catch (_: SecurityException) {
+            false
+        }
+        return mapOf(
+            "sdkInt" to Build.VERSION.SDK_INT,
+            "supported" to (fp != null),
+            "permissionGranted" to perm,
+            "hasHardware" to hardware,
+            "hasEnrolled" to enrolled,
+            "ready" to (fp != null && perm && hardware && enrolled),
+            "listening" to (fingerprintCancellationSignal != null),
+            "biometryType" to "Fingerprint"
+        )
+    }
+
+    @Suppress("DEPRECATION")
+    private fun startFingerprintAuth() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            emitFingerprintEvent("unsupported", message = "Android 6.0+ required.")
+            return
+        }
+        val status = getFingerprintStatus()
+        if (status["ready"] != true) {
+            emitFingerprintEvent(
+                "precheck_failed",
+                message = "Fingerprint not ready. Check hardware/enrollment/permission.",
+                extra = status
+            )
+            return
+        }
+        cancelFingerprintAuth()
+        val fp = getFingerprintManagerOrNull() ?: return
+        val signal = CancellationSignal()
+        fingerprintCancellationSignal = signal
+
+        val callback = object : FingerprintManager.AuthenticationCallback() {
+            override fun onAuthenticationError(errorCode: Int, errString: CharSequence?) {
+                fingerprintCancellationSignal = null
+                emitFingerprintEvent(
+                    "auth_error",
+                    code = errorCode,
+                    message = errString?.toString() ?: "Unknown error"
+                )
+            }
+
+            override fun onAuthenticationHelp(helpCode: Int, helpString: CharSequence?) {
+                emitFingerprintEvent(
+                    "auth_help",
+                    code = helpCode,
+                    message = helpString?.toString() ?: "Keep finger steady / clean sensor"
+                )
+            }
+
+            override fun onAuthenticationSucceeded(result: FingerprintManager.AuthenticationResult?) {
+                fingerprintCancellationSignal = null
+                emitFingerprintEvent("auth_succeeded", message = "Fingerprint recognized!")
+            }
+
+            override fun onAuthenticationFailed() {
+                emitFingerprintEvent("auth_failed", message = "Fingerprint not recognized. Try again.")
+            }
+        }
+
+        try {
+            fp.authenticate(null, signal, 0, callback, Handler(Looper.getMainLooper()))
+            emitFingerprintEvent("listening_started", message = "Listening... Touch fingerprint sensor now.")
+        } catch (se: SecurityException) {
+            fingerprintCancellationSignal = null
+            emitFingerprintEvent("security_exception", message = se.message ?: "SecurityException")
+        } catch (t: Throwable) {
+            fingerprintCancellationSignal = null
+            emitFingerprintEvent("exception", message = t.message ?: t.toString())
+        }
+    }
+
+    private fun cancelFingerprintAuth() {
+        val wasListening = fingerprintCancellationSignal != null
+        try {
+            fingerprintCancellationSignal?.cancel()
+        } catch (_: Throwable) {
+        } finally {
+            fingerprintCancellationSignal = null
+            if (wasListening) {
+                emitFingerprintEvent("listening_stopped", message = "Stopped listening.")
+            }
+        }
+    }
+
+    private fun emitFingerprintEvent(
+        type: String,
+        code: Int? = null,
+        message: String? = null,
+        extra: Map<String, Any?>? = null
+    ) {
+        val payload = HashMap<String, Any?>()
+        payload["type"] = type
+        payload["timestamp"] = System.currentTimeMillis()
+        if (code != null) payload["code"] = code
+        if (message != null) payload["message"] = message
+        if (extra != null) payload["extra"] = extra
+        Handler(Looper.getMainLooper()).post {
+            fingerprintEventSink?.success(payload)
+        }
     }
 
     override fun onStop() {

@@ -124,8 +124,9 @@ class OrderNotifications {
 
   static Future<void> _createChannel() async {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const ios = DarwinInitializationSettings();
     await _local.initialize(
-      const InitializationSettings(android: android),
+      const InitializationSettings(android: android, iOS: ios),
       onDidReceiveNotificationResponse: (response) {
         tappedOrderId.value = response.payload;
       },
@@ -161,6 +162,11 @@ class OrderNotifications {
           'Order updates',
           importance: Importance.high,
           priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
         ),
       ),
       payload: message.data['orderId'] as String?,

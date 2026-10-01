@@ -214,6 +214,21 @@ class _InternetTestPageState extends State<InternetTestPage>
       if (response.statusCode == 204) {
         return RouteReport(outcome: RouteOutcome.ok, millis: millis);
       }
+
+      // On iOS (or under widget tests where Dart HttpClient is stubbed to 400),
+      // allow the native Wi-Fi interface probe to verify the Wi-Fi route.
+      try {
+        final nativeWifi = await _channel
+            .invokeMapMethod<String, dynamic>('probeWifi')
+            .timeout(const Duration(seconds: 5));
+        if (nativeWifi != null && nativeWifi['status'] == 'ok') {
+          return RouteReport(
+            outcome: RouteOutcome.ok,
+            millis: (nativeWifi['ms'] as num?)?.round() ?? millis,
+          );
+        }
+      } catch (_) {}
+
       return RouteReport(
         outcome: RouteOutcome.captive,
         detail: 'Replied with ${response.statusCode} instead of 204 — this '

@@ -9,6 +9,7 @@ import '../shared/widgets/widgets.dart';
 import '../shared/services/model_search.dart';
 import 'brand_detail_page.dart';
 import 'brand_list_page.dart';
+import 'biometric_diagnostic_page.dart';
 import 'variant_selection_page.dart';
 
 /// Entry point of the sell flow: pick a brand, or search for a model
@@ -250,13 +251,28 @@ class _SellMobilePageState extends State<SellMobilePage> {
   Widget _buildHeader() {
     return AppScreenHeader(
       title: 'Sell Old Phone',
-      trailing: IconButton(
-        tooltip: 'Sell help & FAQs',
-        icon: const Icon(
-          Icons.help_outline_rounded,
-          color: AppColors.primary,
-        ),
-        onPressed: _showHelpSheet,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            tooltip: 'Biometric sensor check',
+            icon: const Icon(
+              Icons.fingerprint_rounded,
+              color: AppColors.primary,
+            ),
+            onPressed: () {
+              context.pushScreen(const BiometricDiagnosticPage());
+            },
+          ),
+          IconButton(
+            tooltip: 'Sell help & FAQs',
+            icon: const Icon(
+              Icons.help_outline_rounded,
+              color: AppColors.primary,
+            ),
+            onPressed: _showHelpSheet,
+          ),
+        ],
       ),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

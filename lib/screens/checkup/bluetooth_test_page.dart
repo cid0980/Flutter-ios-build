@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -78,38 +79,65 @@ class _BluetoothTestPageState extends State<BluetoothTestPage> {
   }
 
   Future<void> _run() async {
-    final scanPerm = await Permission.bluetoothScan.request();
-    final connectPerm = await Permission.bluetoothConnect.request();
-    final locationPerm = await Permission.location.request();
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      final btPerm = await Permission.bluetooth.request();
+      if (!mounted) return;
+      if (btPerm.isPermanentlyDenied) {
+        setState(() => _isPermanentlyDenied = true);
+        _setResult(
+            const CheckupResult(
+              key: 'bluetooth',
+              title: 'Bluetooth',
+              status: CheckupStatus.skipped,
+              detail:
+                  'Bluetooth permission is permanently denied. Open Settings to grant.',
+            ),
+            hold: true);
+        return;
+      }
+      if (!btPerm.isGranted && btPerm.isDenied) {
+        _setResult(const CheckupResult(
+          key: 'bluetooth',
+          title: 'Bluetooth',
+          status: CheckupStatus.skipped,
+          detail: 'Bluetooth permission was not granted.',
+        ));
+        return;
+      }
+    } else {
+      final scanPerm = await Permission.bluetoothScan.request();
+      final connectPerm = await Permission.bluetoothConnect.request();
+      final locationPerm = await Permission.location.request();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (scanPerm.isPermanentlyDenied ||
-        connectPerm.isPermanentlyDenied ||
-        locationPerm.isPermanentlyDenied) {
-      setState(() => _isPermanentlyDenied = true);
-      _setResult(
-          const CheckupResult(
-            key: 'bluetooth',
-            title: 'Bluetooth',
-            status: CheckupStatus.skipped,
-            detail:
-                'Bluetooth/Location permission is permanently denied. Open Settings to grant.',
-          ),
-          hold: true);
-      return;
-    }
+      if (scanPerm.isPermanentlyDenied ||
+          connectPerm.isPermanentlyDenied ||
+          locationPerm.isPermanentlyDenied) {
+        setState(() => _isPermanentlyDenied = true);
+        _setResult(
+            const CheckupResult(
+              key: 'bluetooth',
+              title: 'Bluetooth',
+              status: CheckupStatus.skipped,
+              detail:
+                  'Bluetooth/Location permission is permanently denied. Open Settings to grant.',
+            ),
+            hold: true);
+        return;
+      }
 
-    if (!scanPerm.isGranted &&
-        !connectPerm.isGranted &&
-        !locationPerm.isGranted) {
-      _setResult(const CheckupResult(
-        key: 'bluetooth',
-        title: 'Bluetooth',
-        status: CheckupStatus.skipped,
-        detail: 'Bluetooth permission was not granted.',
-      ));
-      return;
+      if (!scanPerm.isGranted &&
+          !connectPerm.isGranted &&
+          !locationPerm.isGranted) {
+        _setResult(const CheckupResult(
+          key: 'bluetooth',
+          title: 'Bluetooth',
+          status: CheckupStatus.skipped,
+          detail: 'Bluetooth permission was not granted.',
+        ));
+        return;
+      }
     }
 
     setState(() {

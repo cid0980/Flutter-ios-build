@@ -16,6 +16,7 @@ const FirebaseOptions catalogFirebaseOptions = FirebaseOptions(
   messagingSenderId: '1086357315686',
   projectId: 'french-mobiles-marketplace',
   storageBucket: 'french-mobiles-marketplace.firebasestorage.app',
+  iosBundleId: 'com.example.frenchMobiles',
 );
 
 Future<void> initializeCatalogApp() async {

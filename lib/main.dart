@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -20,6 +21,7 @@ Future<void> main() async {
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark,
+    statusBarBrightness: Brightness.light,
   ));
 
   try {
@@ -39,8 +41,12 @@ Future<void> main() async {
     // empty listings row rather than failing the whole app.
   }
   try {
+    const oauthClientId =
+        '1086357315686-gd3cjbuqqll9umc7peffkd04laiq6hmt.apps.googleusercontent.com';
     await GoogleSignIn.instance.initialize(
-      serverClientId: '1086357315686-gd3cjbuqqll9umc7peffkd04laiq6hmt.apps.googleusercontent.com',
+      clientId:
+          defaultTargetPlatform == TargetPlatform.iOS ? oauthClientId : null,
+      serverClientId: oauthClientId,
     );
   } catch (_) {
     // Google Sign-In unavailable; app still renders.

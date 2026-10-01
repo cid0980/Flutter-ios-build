@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -85,9 +86,30 @@ class CheckupPermissions {
   /// shows nothing at all, so promising a prompt would be a lie. Those surface
   /// on the test itself, which offers a route to system settings.
   static Future<List<CheckupPermissionNeed>> outstanding() async {
+    final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
     final result = <CheckupPermissionNeed>[];
     for (final need in needs) {
       try {
+        if (isIOS) {
+          // Android-only permissions that have no iOS prompt.
+          if (need.permission == Permission.nearbyWifiDevices ||
+              need.permission == Permission.phone ||
+              need.permission == Permission.bluetoothScan) {
+            continue;
+          }
+          if (need.permission == Permission.bluetoothConnect) {
+            final btStatus = await Permission.bluetooth.status;
+            if (!btStatus.isGranted && !btStatus.isPermanentlyDenied) {
+              result.add(CheckupPermissionNeed(
+                permission: Permission.bluetooth,
+                icon: need.icon,
+                label: need.label,
+                reason: need.reason,
+              ));
+            }
+            continue;
+          }
+        }
         final status = await need.permission.status;
         if (!status.isGranted && !status.isPermanentlyDenied) {
           result.add(need);
@@ -108,6 +130,14 @@ class CheckupPermissions {
   /// requests what it needs, so the worst case is the old behaviour.
   static Future<Map<Permission, PermissionStatus>> requestAll() async {
     try {
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        return await [
+          Permission.camera,
+          Permission.microphone,
+          Permission.location,
+          Permission.bluetooth,
+        ].request();
+      }
       return await needs.map((n) => n.permission).toList().request();
     } catch (_) {
       return const {};
@@ -145,6 +175,8 @@ class _CheckupPermissionSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final osName =
+        defaultTargetPlatform == TargetPlatform.iOS ? 'iOS' : 'Android';
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.fromLTRB(
@@ -161,9 +193,9 @@ class _CheckupPermissionSheet extends StatelessWidget {
             const SizedBox(height: AppSpacing.xs),
             Text(
               needs.length == 1
-                  ? 'The checkup needs one permission. Android will ask you '
+                  ? 'The checkup needs one permission. $osName will ask you '
                       'for it next.'
-                  : 'The checkup needs ${needs.length} permissions. Android '
+                  : 'The checkup needs ${needs.length} permissions. $osName '
                       'will ask for them one after another.',
               style: AppTextStyles.bodySmall,
             ),

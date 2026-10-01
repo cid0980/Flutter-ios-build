@@ -116,6 +116,7 @@ class _DisplayTestPageState extends State<DisplayTestPage> {
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
     ));
     super.dispose();
   }
@@ -128,6 +129,7 @@ class _DisplayTestPageState extends State<DisplayTestPage> {
         SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: dark ? Brightness.light : Brightness.dark,
+          statusBarBrightness: dark ? Brightness.dark : Brightness.light,
           systemNavigationBarColor: Colors.transparent,
           systemNavigationBarDividerColor: Colors.transparent,
           systemNavigationBarIconBrightness:
@@ -139,6 +141,7 @@ class _DisplayTestPageState extends State<DisplayTestPage> {
         const SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
           systemNavigationBarColor: Colors.transparent,
           systemNavigationBarDividerColor: Colors.transparent,
           systemNavigationBarIconBrightness: Brightness.dark,

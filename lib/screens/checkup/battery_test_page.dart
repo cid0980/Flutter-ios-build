@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -147,12 +148,18 @@ class _BatteryTestPageState extends State<BatteryTestPage>
     }
 
     // Nothing measured at all.
+    final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
     markNotAvailable(
-      'This phone does not report battery health or charge cycles. Android '
-      'has no battery health reading of its own, and the figure some phones '
-      'show in Settings comes from the manufacturer, which apps cannot get '
-      'at. What it did report: ${_summary(reading)}. Choose the health band '
-      'yourself in the next step.',
+      isIOS
+          ? 'iOS does not expose battery health percentage or charge cycles to '
+              'apps — check Settings → Battery → Battery Health & Charging. '
+              'What it did report: ${_summary(reading)}. Choose the health '
+              'band yourself in the next step.'
+          : 'This phone does not report battery health or charge cycles. Android '
+              'has no battery health reading of its own, and the figure some phones '
+              'show in Settings comes from the manufacturer, which apps cannot get '
+              'at. What it did report: ${_summary(reading)}. Choose the health band '
+              'yourself in the next step.',
       data: data,
     );
   }
@@ -312,9 +319,14 @@ class _BatteryTestPageState extends State<BatteryTestPage>
           const SizedBox(height: AppSpacing.sm),
           Text(
             cycles == null
-                ? 'Only Android 14 and later report charge cycles, and Android '
-                    'has no battery health reading at any version. So this one '
-                    'asks you instead.'
+                ? (defaultTargetPlatform == TargetPlatform.iOS
+                    ? 'iOS keeps Maximum Capacity in Settings → Battery → '
+                        'Battery Health & Charging, so apps cannot read it '
+                        'directly. Check that figure and choose the matching '
+                        'band next.'
+                    : 'Only Android 14 and later report charge cycles, and Android '
+                        'has no battery health reading at any version. So this one '
+                        'asks you instead.')
                 : 'Android has no battery health reading, so the capacity '
                     'figure is estimated from the cycle count — cells are '
                     'specified to hold about 80% after 500 cycles.',

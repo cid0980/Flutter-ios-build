@@ -14,6 +14,7 @@ import '../shared/theme/app_theme.dart';
 import '../shared/services/battery_band.dart';
 import '../shared/widgets/condition_icon.dart';
 import '../shared/widgets/widgets.dart';
+import 'biometric_diagnostic_page.dart';
 import 'pickup_checkout_page.dart';
 
 class DeviceEvaluationWizard extends StatefulWidget {
@@ -555,6 +556,43 @@ class _DeviceEvaluationWizardState extends State<DeviceEvaluationWizard> {
           (i) => setState(() => _selectedLockIndex = i),
           category: ConditionCategory.lock,
           embedded: true,
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        AppSurface(
+          onTap: () => context.pushScreen(const BiometricDiagnosticPage()),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.fingerprint_rounded,
+                size: 24,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Biometric sensor diagnostic',
+                      style: AppTextStyles.bodyMedium,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Verify Face ID, Touch ID or fingerprint hardware live',
+                      style: AppTextStyles.caption,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: AppColors.textTertiary,
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: AppSpacing.xxl),
         const AppSectionHeader(

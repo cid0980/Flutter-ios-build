@@ -1,3 +1,5 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -23,6 +25,8 @@ class WifiTestPage extends StatefulWidget {
 }
 
 class _WifiTestPageState extends State<WifiTestPage> {
+  static const _internetChannel = MethodChannel('french_mobiles/internet');
+
   final List<WiFiAccessPoint> _networks = [];
   bool _scanning = false;
   bool _isPermanentlyDenied = false;
@@ -47,6 +51,11 @@ class _WifiTestPageState extends State<WifiTestPage> {
       _scanning = true;
       _statusText = 'Checking Wi-Fi permissions…';
     });
+
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      await _runIOSWifiCheck();
+      return;
+    }
 
     final nearby = await Permission.nearbyWifiDevices.request();
     if (!mounted) return;
@@ -119,6 +128,88 @@ class _WifiTestPageState extends State<WifiTestPage> {
     }
 
     await _startScan();
+  }
+
+  /// iOS forbids third-party apps from scanning nearby Wi-Fi SSIDs without a
+  /// private HotspotHelper entitlement, so on iOS we verify the Wi-Fi radio by
+  /// probing directly over the native `en0` Wi-Fi interface.
+  Future<void> _runIOSWifiCheck() async {
+    if (!mounted) return;
+    setState(() {
+      _scanning = true;
+      _statusText = 'Verifying Wi-Fi radio and connection…';
+    });
+
+    try {
+      final probe = await _internetChannel
+          .invokeMapMethod<String, dynamic>('probeWifi')
+          .timeout(const Duration(seconds: 10));
+
+      if (!mounted) return;
+      setState(() => _scanning = false);
+
+      if (probe != null) {
+        final status = probe['status'];
+        final ms = (probe['ms'] as num?)?.round();
+        if (status == 'ok') {
+          _setResult(CheckupResult(
+            key: 'wifi',
+            title: 'Wi-Fi',
+            status: CheckupStatus.pass,
+            detail:
+                'Wi-Fi radio works — connected and verified${ms != null ? ' (${ms}ms)' : ''}',
+          ));
+          return;
+        }
+        if (status == 'captive') {
+          _setResult(const CheckupResult(
+            key: 'wifi',
+            title: 'Wi-Fi',
+            status: CheckupStatus.pass,
+            detail: 'Wi-Fi radio works — connected to a local Wi-Fi network',
+          ));
+          return;
+        }
+        if (status == 'no_wifi') {
+          _setResult(const CheckupResult(
+            key: 'wifi',
+            title: 'Wi-Fi',
+            status: CheckupStatus.skipped,
+            detail:
+                'Not connected to Wi-Fi. Connect to a Wi-Fi network in Settings to verify the radio.',
+          ));
+          return;
+        }
+      }
+
+      final types = await Connectivity().checkConnectivity();
+      if (!mounted) return;
+      if (types.contains(ConnectivityResult.wifi)) {
+        _setResult(const CheckupResult(
+          key: 'wifi',
+          title: 'Wi-Fi',
+          status: CheckupStatus.pass,
+          detail: 'Wi-Fi radio works — connected to Wi-Fi',
+        ));
+      } else {
+        _setResult(const CheckupResult(
+          key: 'wifi',
+          title: 'Wi-Fi',
+          status: CheckupStatus.skipped,
+          detail:
+              'Not connected to Wi-Fi. Connect to a Wi-Fi network in Settings to verify the radio.',
+        ));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _scanning = false);
+      _setResult(CheckupResult(
+        key: 'wifi',
+        title: 'Wi-Fi',
+        status: CheckupStatus.fail,
+        detail: 'Wi-Fi check failed: $e',
+      ));
+    }
   }
 
   /// Raises Android's own "Turn on location?" dialog when location services

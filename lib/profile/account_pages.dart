@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../firebase/catalog_firebase.dart';
+import '../screens/biometric_diagnostic_page.dart';
 import '../shared/motion/motion.dart';
 import '../shared/theme/app_colors.dart';
 import '../shared/theme/app_text_styles.dart';
@@ -186,7 +187,16 @@ class _SavedAddressesPageState extends State<SavedAddressesPage> {
   }
 
   void _shareAddress(String label, String fullAddress) {
-    SharePlus.instance.share(ShareParams(text: '$label: $fullAddress'));
+    final box = context.findRenderObject() as RenderBox?;
+    final origin = box != null
+        ? box.localToGlobal(Offset.zero) & box.size
+        : const Rect.fromLTWH(0, 0, 100, 100);
+    SharePlus.instance.share(
+      ShareParams(
+        text: '$label: $fullAddress',
+        sharePositionOrigin: origin,
+      ),
+    );
   }
 
   Future<void> _setAsDefault(String docId) async {
@@ -1040,6 +1050,14 @@ class _PrivacySecurityPageState extends State<PrivacySecurityPage> {
               subtitle: 'Use fingerprint or face to open the app',
               value: biometrics,
               onChanged: (v) => setState(() => biometrics = v),
+            ),
+            AppListTile(
+              title: 'Biometric sensor diagnostic',
+              subtitle: 'Test Face ID, Touch ID or fingerprint hardware',
+              leadingIcon: Icons.fingerprint_rounded,
+              onTap: () => context.pushScreen<bool>(
+                const BiometricDiagnosticPage(),
+              ),
             ),
           ],
         ),

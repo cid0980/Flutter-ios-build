@@ -20,6 +20,7 @@ const FirebaseOptions secondHandFirebaseOptions = FirebaseOptions(
   messagingSenderId: '530574210824',
   projectId: 'fren-75087',
   storageBucket: 'fren-75087.firebasestorage.app',
+  iosBundleId: 'com.example.frenchMobiles',
 );
 
 Future<void> initializeSecondHandApp() async {
