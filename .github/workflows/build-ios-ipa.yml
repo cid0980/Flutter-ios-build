@@ -34,7 +34,13 @@ jobs:
         run: flutter test test/ios_compatibility_test.dart
 
       - name: Build iOS release (no codesign)
-        run: flutter build ios --release --no-codesign
+        run: |
+          flutter build ios --release --no-codesign || {
+            echo "=== Retrying with verbose diagnostics to capture full Xcode compiler output ==="
+            flutter build ios --release --no-codesign -v > build_ios_verbose.log 2>&1 || true
+            grep -E "error:|fatal error:" -C 4 build_ios_verbose.log | tail -n 120
+            exit 1
+          }
 
       - name: Package Runner.app into unsigned .ipa
         run: |
