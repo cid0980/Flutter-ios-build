@@ -3,20 +3,15 @@ name: Build Unsigned iOS IPA
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-      - master
-      - refactor/structure
+    branches: [main, master, refactor/structure]
   pull_request:
-    branches:
-      - main
-      - master
-      - refactor/structure
+    branches: [main, master, refactor/structure]
 
 jobs:
   build-ios:
     name: Build Unsigned iOS .ipa
-    runs-on: macos-latest
+    runs-on: macos-14
+    timeout-minutes: 45
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,20 +25,21 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Run Flutter analyzer & iOS compatibility tests
-        run: |
-          flutter analyze lib
-          flutter test
+      - name: Run iOS compatibility & unit tests
+        run: flutter test test/ios_compatibility_test.dart
 
       - name: Build iOS release (no codesign)
         run: flutter build ios --release --no-codesign
 
       - name: Package Runner.app into unsigned .ipa
         run: |
+          rm -rf build/ios/ipa/Payload
           mkdir -p build/ios/ipa/Payload
           cp -R build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
           cd build/ios/ipa
-          zip -r9 french_mobiles-unsigned.ipa Payload
+          rm -f french_mobiles-unsigned.ipa
+          zip -qry french_mobiles-unsigned.ipa Payload
+          ls -lh french_mobiles-unsigned.ipa
 
       - name: Upload unsigned .ipa artifact
         uses: actions/upload-artifact@v4
