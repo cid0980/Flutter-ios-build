@@ -116,11 +116,10 @@
 			</array>
 		</dict>
 	</array>
-	<!-- Background modes for push notifications and audio tests -->
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>fetch</string>
-		<string>remote-notification</string>
-	</array>
+	<!-- Disable Firebase AppDelegate/SceneDelegate swizzling (prevents launch crash without APNs entitlements) -->
+	<key>FirebaseAppDelegateProxyEnabled</key>
+	<false/>
+	<key>FirebaseAutomaticScreenReportingEnabled</key>
+	<false/>
 </dict>
 </plist>

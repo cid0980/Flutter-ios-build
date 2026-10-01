@@ -45,7 +45,7 @@ void main() {
         'NSLocalNetworkUsageDescription',
         'GIDClientID',
         'CFBundleURLSchemes',
-        'UIBackgroundModes',
+        'FirebaseAppDelegateProxyEnabled',
       ];
 
       for (final key in requiredKeys) {

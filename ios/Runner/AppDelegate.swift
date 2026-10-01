@@ -12,6 +12,7 @@ import UIKit
   private static let googleMapsApiKey = "AIzaSyBuNeSp9nFFImMvMPiV7UQMh_ykbiwsZN0"
 
   private var channelsRegistered = false
+  private var googleMapsInitialized = false
 
   // Channels
   private var volumeChannel: FlutterMethodChannel?
@@ -65,6 +66,8 @@ import UIKit
   /// Dynamically provides the Google Maps API key to GMSServices if linked,
   /// preventing NSInternalInconsistencyException when LocationPickerPage opens.
   private func provideGoogleMapsKeyIfPresent() {
+    guard !googleMapsInitialized else { return }
+    googleMapsInitialized = true
     if let gmsServices = NSClassFromString("GMSServices") as? NSObject.Type {
       let selector = NSSelectorFromString("provideAPIKey:")
       if gmsServices.responds(to: selector) {

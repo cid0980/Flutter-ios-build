@@ -42,12 +42,21 @@ jobs:
             exit 1
           }
 
-      - name: Package Runner.app into unsigned .ipa
+      - name: Package Runner.app into unsigned .ipa (Free Apple ID / Sideloadly compatible)
         run: |
           rm -rf build/ios/ipa/Payload
           mkdir -p build/ios/ipa/Payload
           cp -R build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
-          cd build/ios/ipa
+          # Remove unused SwiftPM / native-asset stub frameworks so Frameworks/ only
+          # contains App.framework and Flutter.framework (Free Apple IDs on iOS 16-18
+          # enforce a hard kernel limit of 3 dynamic frameworks per app).
+          cd build/ios/ipa/Payload/Runner.app/Frameworks
+          rm -rf FirebaseFirestoreInternal.framework absl.framework grpc.framework grpcpp.framework openssl_grpc.framework objective_c.framework
+          # Fix Flutter.framework (0700 -> 0755) and App.framework/App (+x) permissions
+          chmod -R u=rwX,go=rX ../../..
+          chmod 755 ../Runner App.framework/App Flutter.framework/Flutter
+          ls -la .
+          cd ../../..
           rm -f french_mobiles-unsigned.ipa
           zip -qry french_mobiles-unsigned.ipa Payload
           ls -lh french_mobiles-unsigned.ipa
