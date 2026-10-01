@@ -392,38 +392,34 @@ import UIKit
 
   // MARK: - 4. Battery (`french_mobiles/battery`)
 
-  private func readBattery() -> [String: Any?] {
+  private func readBattery() -> [String: Any] {
     let device = UIDevice.current
     device.isBatteryMonitoringEnabled = true
     let state = device.batteryState
     let rawLevel = device.batteryLevel
-    let level: Int? = rawLevel >= 0 ? Int((rawLevel * 100).rounded()) : nil
     let charging = state == .charging || state == .full
     let present = state != .unknown
+    let powerSource: String = charging ? "mains" : (present ? "battery" : "none")
+    let healthFlag: String = present ? "good" : "unknown"
+    let sdkInt = Int(ProcessInfo.processInfo.operatingSystemVersion.majorVersion)
 
-    return [
+    var payload: [String: Any] = [
       "present": present,
-      "level": level,
       "charging": charging,
-      "powerSource": charging ? "mains" : (present ? "battery" : "none"),
-      "healthFlag": present ? "good" : "unknown",
+      "powerSource": powerSource,
+      "healthFlag": healthFlag,
       "technology": "Li-ion",
-      "sdkInt": Int(ProcessInfo.processInfo.operatingSystemVersion.majorVersion),
-      "temperatureCelsius": nil,
-      "voltage": nil,
-      "currentMicroAmps": nil,
-      "cycleCount": nil,
-      "capacityHealth": nil,
-      "capacityFullMah": nil,
-      "capacityDesignMah": nil,
-      "capacitySource": nil,
-      "capacityLevel": nil,
+      "sdkInt": sdkInt,
     ]
+    if rawLevel >= 0 {
+      payload["level"] = Int((rawLevel * 100).rounded())
+    }
+    return payload
   }
 
   // MARK: - 5. Thermal (`french_mobiles/thermal`)
 
-  private func readThermal() -> [String: Any?] {
+  private func readThermal() -> [String: Any] {
     let state = ProcessInfo.processInfo.thermalState
     let status: String
     let headroom: Double
@@ -445,10 +441,11 @@ import UIKit
       headroom = 0.50
     }
 
+    let emptySensors: [[String: Any]] = []
     return [
       "status": status,
       "headroom": headroom,
-      "sensors": [[String: Any]](),
+      "sensors": emptySensors,
     ]
   }
 
@@ -461,7 +458,7 @@ import UIKit
     var settled = false
     let lock = NSLock()
 
-    func finish(_ payload: [String: Any?]) {
+    func finish(_ payload: [String: Any]) {
       lock.lock()
       if settled {
         lock.unlock()
@@ -492,7 +489,7 @@ import UIKit
 
   private func performHttp204OverInterface(
     _ interfaceType: NWInterface.InterfaceType,
-    finish: @escaping ([String: Any?]) -> Void
+    finish: @escaping ([String: Any]) -> Void
   ) {
     let params = NWParameters.tls
     params.requiredInterfaceType = interfaceType
@@ -505,7 +502,7 @@ import UIKit
 
     var done = false
     let connLock = NSLock()
-    func complete(_ dict: [String: Any?]) {
+    func complete(_ dict: [String: Any]) {
       connLock.lock()
       if done {
         connLock.unlock()
